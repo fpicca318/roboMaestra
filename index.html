@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robo-Maestra: Laboratorio IA e Pericoli della Rete</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti per festeggiamenti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome per icone intuitive -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Fredoka per stile giocoso e leggibile -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            overflow-x: hidden;
+        }
+
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-bounce-gentle {
+            animation: bounceGentle 2.2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.5)); }
+            50% { filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.9)); }
+        }
+
+        .robot-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes robotHappy {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.15) rotate(-8deg); }
+            75% { transform: scale(1.15) rotate(8deg); }
+        }
+
+        .robot-happy {
+            animation: robotHappy 0.5s ease-in-out 2;
+        }
+
+        @keyframes robotSad {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+
+        .robot-sad {
+            animation: robotSad 0.5s ease-in-out;
+        }
+
+        @keyframes floatTag {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+        }
+
+        .float-feedback {
+            animation: floatTag 0.8s ease-out forwards;
+        }
+
+        .draggable-item {
+            cursor: grab;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            touch-action: none;
+        }
+
+        .draggable-item:active {
+            cursor: grabbing;
+            transform: scale(1.25) rotate(6deg);
+            z-index: 50;
+        }
+
+        .basket-target {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .basket-target.drag-over {
+            transform: scale(1.08);
+            filter: brightness(1.2);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+        }
+
+        .robot-talking #robot-mouth {
+            animation: mouthTalk 0.2s infinite alternate;
+        }
+
+        @keyframes mouthTalk {
+            0% { d: path('M 75 90 Q 100 98 125 90'); }
+            100% { d: path('M 75 90 Q 100 118 125 90'); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 min-h-screen flex flex-col justify-between p-2 sm:p-4 text-slate-800">
+
+    <!-- BARRA SUPERIORE NAVIGATION & PROGRESSO -->
+    <header class="w-full max-w-6xl mx-auto bg-white/90 backdrop-blur-md p-3 sm:p-4 rounded-3xl border-4 border-white shadow-xl z-20 flex flex-col sm:flex-row items-center justify-between gap-3">
+        
+        <!-- Logo App -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchSection('stories')">
+            <div class="bg-gradient-to-tr from-pink-400 to-purple-500 text-white p-3 rounded-2xl text-2xl sm:text-3xl shadow-lg animate-bounce-gentle">
+                <i class="fa-solid fa-shield-cat"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-indigo-950 leading-tight">ROBO-MAESTRA</h1>
+                <p class="text-xs sm:text-sm font-bold text-pink-600">Super Eroine e Super Eroi della Rete! 🎀🛡️</p>
+            </div>
+        </div>
+
+        <!-- Selettore Sezioni Modalità -->
+        <div class="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-center flex-wrap">
+            <button id="nav-btn-stories" onclick="switchSection('stories')" class="px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-indigo-600 text-white border-indigo-700 shadow-md">
+                <i class="fa-solid fa-book-open"></i>
+                <span>1. TRUCCHI DELL'IA</span>
+            </button>
+            
+            <button id="nav-btn-detector" onclick="switchSection('detector')" class="px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-white text-indigo-900 border-indigo-200 hover:bg-indigo-50">
+                <i class="fa-solid fa-magnifying-glass text-purple-600"></i>
+                <span>2. DETECTIVE VERO O FALSO</span>
+            </button>
+
+            <button id="nav-btn-trainer" onclick="switchSection('trainer')" class="px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-white text-indigo-900 border-indigo-200 hover:bg-indigo-50">
+                <i class="fa-solid fa-gamepad text-emerald-600"></i>
+                <span>3. PALESTRA SCUDO</span>
+            </button>
+
+            <button id="nav-btn-glossary" onclick="switchSection('glossary')" class="px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-white text-indigo-900 border-indigo-200 hover:bg-indigo-50">
+                <i class="fa-solid fa-book-atlas text-amber-500"></i>
+                <span>4. GLOSSARIO IA</span>
+            </button>
+
+            <!-- Badge Stelle -->
+            <div class="bg-amber-100 border-2 border-amber-300 text-amber-900 px-3 py-2 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1 shadow-sm">
+                <span class="text-base sm:text-lg">⭐</span>
+                <span id="star-count">1/20</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTAINER CENTRALE -->
+    <main class="w-full max-w-6xl mx-auto flex-1 my-3 flex flex-col lg:flex-row items-stretch gap-4 z-10">
+
+        <!-- PANNELLO AVATAR E VOCE GUIDA (FISSO A SINISTRA) -->
+        <aside class="w-full lg:w-80 bg-white/90 backdrop-blur-md rounded-3xl p-4 border-4 border-white shadow-xl flex flex-col items-center justify-between relative overflow-hidden shrink-0">
+            
+            <!-- Speech Bubble (Fumetto) -->
+            <div id="speech-bubble" class="w-full bg-pink-100 border-4 border-pink-300 rounded-2xl p-3 text-center shadow-md relative mb-2 transition-all duration-300 cursor-pointer" onclick="speakCurrentContext()">
+                <p id="robot-text" class="text-xs sm:text-sm font-bold text-pink-950 leading-snug">
+                    Ciao! Sono Robo-Maestra! 🎀 Oggi impariamo a diventare Super Eroi della Rete e a difenderci dai trucchi dell'IA! Tocca qui per ascoltarmi!
+                </p>
+                <div class="w-4 h-4 bg-pink-100 border-r-4 border-b-4 border-pink-300 transform rotate-45 mx-auto -mb-5 mt-1"></div>
+            </div>
+
+            <!-- Avatar SVG Robottina Femmina -->
+            <div id="robot-avatar" class="w-36 sm:w-44 lg:w-52 h-36 sm:h-44 lg:h-52 relative my-2 robot-glow transition-transform duration-300 cursor-pointer" onclick="speakCurrentContext()">
+                <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-xl">
+                    <!-- Fiocco Rosa Sulla Testa -->
+                    <g id="robot-bow">
+                        <path d="M 65 10 C 50 0, 45 25, 75 25 Z" fill="#EC4899" stroke="#BE185D" stroke-width="3"/>
+                        <path d="M 135 10 C 150 0, 155 25, 125 25 Z" fill="#EC4899" stroke="#BE185D" stroke-width="3"/>
+                        <circle cx="100" cy="20" r="10" fill="#F472B6" stroke="#BE185D" stroke-width="3"/>
+                    </g>
+
+                    <!-- Antenna Elegante -->
+                    <rect x="94" y="24" width="12" height="16" fill="#94A3B8" rx="3"/>
+                    <circle id="robot-antenna-light" cx="100" cy="22" r="8" fill="#F43F5E" class="animate-pulse"/>
+
+                    <!-- Testa Arrotondata Robottina -->
+                    <rect x="35" y="36" width="130" height="90" fill="#8B5CF6" rx="28" stroke="#6D28D9" stroke-width="4"/>
+                    <rect x="46" y="46" width="108" height="70" fill="#0F172A" rx="20"/>
+
+                    <!-- Occhi Grandi ed Espressivi -->
+                    <g id="robot-eyes">
+                        <!-- Occhio Sinistro -->
+                        <circle id="eye-l" cx="72" cy="74" r="18" fill="#38BDF8"/>
+                        <circle cx="72" cy="74" r="14" fill="#0284C7"/>
+                        <circle cx="77" cy="69" r="6" fill="#FFFFFF"/>
+                        <circle cx="67" cy="79" r="3" fill="#FFFFFF"/>
+                        <!-- Ciglia Sinistre -->
+                        <path d="M 58 60 L 52 54 M 68 55 L 66 47 M 78 57 L 80 49" stroke="#F472B6" stroke-width="3" stroke-linecap="round"/>
+
+                        <!-- Occhio Destro -->
+                        <circle id="eye-r" cx="128" cy="74" r="18" fill="#38BDF8"/>
+                        <circle cx="128" cy="74" r="14" fill="#0284C7"/>
+                        <circle cx="133" cy="69" r="6" fill="#FFFFFF"/>
+                        <circle cx="123" cy="79" r="3" fill="#FFFFFF"/>
+                        <!-- Ciglia Destre -->
+                        <path d="M 142 60 L 148 54 M 132 55 L 134 47 M 122 57 L 120 49" stroke="#F472B6" stroke-width="3" stroke-linecap="round"/>
+                    </g>
+
+                    <!-- Guanciotte Rosa Sorridenti -->
+                    <circle cx="56" cy="94" r="8" fill="#FB7185" opacity="0.85"/>
+                    <circle cx="144" cy="94" r="8" fill="#FB7185" opacity="0.85"/>
+
+                    <!-- Bocca Parlante Sorridente -->
+                    <path id="robot-mouth" d="M 75 90 Q 100 98 125 90" fill="none" stroke="#F472B6" stroke-width="5" stroke-linecap="round"/>
+
+                    <!-- Corpo Abito Robottina -->
+                    <path d="M 60 126 L 140 126 L 160 188 L 40 188 Z" fill="#EC4899" stroke="#BE185D" stroke-width="4"/>
+                    <!-- Collana Cuore -->
+                    <circle cx="100" cy="152" r="15" fill="#FDE047"/>
+                    <text x="92" y="158" font-size="14" fill="#FFF" font-weight="bold">💖</text>
+                </svg>
+            </div>
+
+            <!-- Pulsanti Controllo Audio -->
+            <div class="w-full flex items-center justify-between gap-2 mt-2">
+                <button onclick="toggleMute()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-2xl border-2 border-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                    <i id="mute-icon" class="fa-solid fa-volume-high text-emerald-600"></i>
+                    <span id="mute-text">AUDIO ATTIVO</span>
+                </button>
+
+                <button onclick="speakCurrentContext()" class="bg-pink-100 hover:bg-pink-200 text-pink-900 p-3 rounded-2xl border-2 border-pink-200 font-black text-sm flex items-center justify-center gap-1 transition shadow animate-bounce-gentle" title="Ascolta di nuovo">
+                    <i class="fa-solid fa-volume-high text-pink-600 text-lg"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTENUTO PRINCIPALE DINAMICO (A DESTRA) -->
+        
+        <!-- SEZIONE 1: TRUCCHI DELL'IA (STORIE & PERICOLI INTERATTIVI CON GRIGLIA) -->
+        <section id="section-stories" class="flex-1 bg-white/90 backdrop-blur-md rounded-3xl p-4 sm:p-6 border-4 border-white shadow-xl flex flex-col justify-between relative overflow-hidden">
+            <div>
+                <!-- Titolo Tappa -->
+                <div class="flex items-center justify-between border-b-2 border-slate-100 pb-3 mb-3">
+                    <span id="story-step-badge" class="bg-amber-100 text-amber-900 font-black text-xs sm:text-sm px-3 py-1 rounded-full border border-amber-300">
+                        PERICOLO 1 DI 20
+                    </span>
+                    <button onclick="speakCurrentContext()" class="px-3 py-1 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-xs rounded-full border border-amber-500 shadow flex items-center gap-1">
+                        <i class="fa-solid fa-volume-high"></i>
+                        <span>ASCOLTA</span>
+                    </button>
+                </div>
+
+                <h2 id="story-title" class="text-xl sm:text-2xl font-black text-slate-800 mb-2">
+                    1. Il Pesce con l'Amo (Phishing & Trappole)
+                </h2>
+
+                <p id="story-description" class="text-xs sm:text-sm font-semibold text-slate-600 leading-relaxed mb-3">
+                    In rete arrivano messaggi finti che ti promettono regali o giochi gratis per rubarti le tue cose. L'IA sa scrivere messaggi che sembrano veri!
+                </p>
+
+                <!-- Visual Svg Tappa -->
+                <div id="story-svg-container" class="w-full bg-slate-100 rounded-2xl p-2 sm:p-3 border-2 border-slate-200 shadow-inner flex items-center justify-center my-1 cursor-pointer" onclick="speakCurrentContext()">
+                </div>
+            </div>
+
+            <!-- Griglia dei 20 Pericoli (Selettore Visibile e Organizzato) -->
+            <div class="mt-2">
+                <div class="text-xs font-bold text-slate-500 mb-1 flex justify-between items-center">
+                    <span>Scegli un Pericolo dell'IA:</span>
+                    <span class="text-indigo-600">Sfoglia tutti i 20 bottoni</span>
+                </div>
+                
+                <div id="stories-grid-container" class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 p-2 bg-slate-100/80 rounded-2xl border border-slate-200 max-h-[120px] overflow-y-auto no-scrollbar mb-2">
+                    <!-- Generato dinamicamente con icone via JavaScript -->
+                </div>
+
+                <!-- Pulsanti Navigazione -->
+                <div class="flex items-center justify-between gap-3 pt-2 border-t-2 border-slate-100">
+                    <button id="btn-story-prev" onclick="changeStorySlide(-1)" class="px-4 py-2 rounded-2xl font-black text-xs sm:text-sm bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-40 transition flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>INDIETRO</span>
+                    </button>
+
+                    <button onclick="openCuriosityModal()" class="px-3 sm:px-4 py-2 rounded-2xl font-black text-xs sm:text-sm bg-pink-100 text-pink-700 border-2 border-pink-300 hover:bg-pink-200 transition flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-shield-cat text-pink-500 animate-bounce"></i>
+                        <span>SUPER REGOLE</span>
+                    </button>
+
+                    <button id="btn-story-next" onclick="changeStorySlide(1)" class="px-4 py-2 rounded-2xl font-black text-xs sm:text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg">
+                        <span>AVANTI</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEZIONE 2: DETECTIVE VERO O FALSO (ANALISI DEEPFAKE & AUDIO/VIDEO) -->
+        <section id="section-detector" class="hidden flex-1 bg-white/90 backdrop-blur-md rounded-3xl p-4 sm:p-6 border-4 border-white shadow-xl flex-col justify-between relative overflow-hidden">
+            <div>
+                <div class="flex items-center justify-between border-b-2 border-slate-100 pb-2 mb-2">
+                    <h2 class="text-xl sm:text-2xl font-black text-indigo-950">
+                        Detective Vero o Falso 🔍
+                    </h2>
+                    <button onclick="speakDetectorContext()" class="px-3 py-1 bg-purple-600 text-white font-black text-xs rounded-full shadow flex items-center gap-1">
+                        <i class="fa-solid fa-volume-high"></i>
+                        <span>ASCOLTA ISTRUZIONI</span>
+                    </button>
+                </div>
+                
+                <p class="text-xs sm:text-sm font-bold text-indigo-600 mb-3">
+                    Guarda o ascolta con attenzione! È una cosa VERA o un TRUCCO FALSO dell'IA?
+                </p>
+
+                <!-- Scheda Caso Detective -->
+                <div class="bg-slate-50 border-4 border-indigo-100 rounded-2xl p-4 relative shadow-inner flex flex-col items-center">
+                    
+                    <div id="detector-case-visual" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 min-h-[140px] flex flex-col items-center justify-center shadow-inner mb-3 relative overflow-hidden cursor-pointer" onclick="playCurrentDetectorAudio()">
+                        <!-- Contenuto dinamico caso -->
+                    </div>
+
+                    <div id="detector-hint-box" class="bg-amber-100 border-2 border-amber-300 p-2.5 rounded-2xl text-amber-950 text-xs font-bold w-full text-center mb-3">
+                        💡 Indizio del Detective: Controlla bene i dettagli!
+                    </div>
+
+                    <!-- Pulsanti Scelta Vero / Falso -->
+                    <div class="grid grid-cols-2 gap-4 w-full">
+                        <button onclick="answerDetector(true)" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white p-3 rounded-2xl font-black text-sm sm:text-base border-4 border-emerald-300 shadow-lg flex items-center justify-center gap-2 transition">
+                            <span class="text-2xl">✅</span>
+                            <span>È VERO!</span>
+                        </button>
+                        <button onclick="answerDetector(false)" class="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white p-3 rounded-2xl font-black text-sm sm:text-base border-4 border-rose-300 shadow-lg flex items-center justify-center gap-2 transition">
+                            <span class="text-2xl">❌</span>
+                            <span>È FALSO! (TRUCCO IA)</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="pt-2 text-center">
+                <span id="detector-score-tag" class="text-xs font-black text-purple-900 bg-purple-100 py-1 px-4 rounded-full border border-purple-200">
+                    Casi risolti: 0 / 4
+                </span>
+            </div>
+        </section>
+
+        <!-- SEZIONE 3: PALESTRA SCUDO -->
+        <section id="section-trainer" class="hidden flex-1 bg-white/90 backdrop-blur-md rounded-3xl p-3 sm:p-5 border-4 border-white shadow-xl flex-col justify-between relative overflow-hidden">
+            
+            <!-- SELETTORE MODALITÀ PALESTRA -->
+            <div class="flex items-center justify-between border-b-2 border-slate-100 pb-2 mb-2 gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <button id="btn-subgame-sorting" onclick="switchLabSubGame('sorting')" class="px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-600 text-white border-2 border-indigo-700 shadow flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>1. SMISTAFOTO E MESSAGGI</span>
+                    </button>
+                    <button id="btn-subgame-shield" onclick="switchLabSubGame('shield')" class="px-3 py-1.5 rounded-xl font-black text-xs bg-white text-indigo-900 border-2 border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-heart text-rose-500"></i>
+                        <span>2. SCUDO PAROLE GENTILI</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="resetActiveLabGame()" class="bg-rose-400 hover:bg-rose-500 text-white font-black px-3 py-1 rounded-xl text-xs flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>RICOMINCIA</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- GIOCO A: SMISTAFOTO E MESSAGGI -->
+            <div id="subgame-sorting-container" class="flex-1 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-1">
+                    <span id="trainer-progress-text" class="text-xs font-black text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200">
+                        Elementi controllati: 0 / 5
+                    </span>
+                    <button onclick="speakCurrentContext()" class="text-xs font-bold text-indigo-600 underline">
+                        🔊 Ascolta cosa fare
+                    </button>
+                </div>
+
+                <!-- Area Cesti e Campo di Gioco -->
+                <div class="flex-1 flex items-center justify-between gap-2 sm:gap-4 my-2 relative">
+                    <!-- CESTO SICURO (Sinistra) -->
+                    <div id="safe-basket" class="basket-target flex-1 h-44 sm:h-52 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-3xl border-4 border-emerald-200 shadow-xl flex flex-col items-center justify-between p-2 relative">
+                        <div class="bg-white/90 px-3 py-1 rounded-full shadow text-xl sm:text-2xl flex items-center gap-1">
+                            <span>🛡️</span>
+                            <span id="safe-count-tag" class="text-xs font-black text-emerald-700">(0)</span>
+                        </div>
+                        <div id="safe-container" class="w-full flex-1 flex flex-wrap content-end justify-center gap-1 p-1 overflow-hidden"></div>
+                        <div class="w-full bg-emerald-800/70 rounded-xl py-1 text-center text-white font-black text-xs">
+                            SICURO / BUONO
+                        </div>
+                    </div>
+
+                    <!-- INDICATORE / SMISTATORE CENTRALE -->
+                    <div id="center-trainer-instruction" class="flex flex-col items-center justify-center text-center max-w-[140px] z-10">
+                        <div class="text-3xl sm:text-4xl animate-bounce mb-1">👇</div>
+                        <span id="trainer-instruction-text" class="text-xs font-black text-slate-700 bg-amber-100 px-2 py-1 rounded-xl border border-amber-300">
+                            Trascina l'elemento nel cesto giusto!
+                        </span>
+                    </div>
+
+                    <!-- CESTO PERICOLO / TRAPPOLA (Destra) -->
+                    <div id="danger-basket" class="basket-target flex-1 h-44 sm:h-52 bg-gradient-to-b from-rose-400 to-rose-600 rounded-3xl border-4 border-rose-200 shadow-xl flex flex-col items-center justify-between p-2 relative">
+                        <div class="bg-white/90 px-3 py-1 rounded-full shadow text-xl sm:text-2xl flex items-center gap-1">
+                            <span>⚠️</span>
+                            <span id="danger-count-tag" class="text-xs font-black text-rose-800">(0)</span>
+                        </div>
+                        <div id="danger-container" class="w-full flex-1 flex flex-wrap content-end justify-center gap-1 p-1 overflow-hidden"></div>
+                        <div class="w-full bg-rose-800/70 rounded-xl py-1 text-center text-white font-black text-xs">
+                            TRAPPOLA / PERICOLO
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NASTRO TRASPORTATORE PER ELEMENTI -->
+                <div id="conveyor-container" class="w-full h-24 sm:h-28 bg-slate-700 rounded-3xl border-4 border-slate-600 relative flex items-center justify-center shadow-2xl mt-2 overflow-hidden">
+                    <div id="item-spawn" class="relative z-30 flex items-center justify-center w-full h-full cursor-pointer" onclick="speakCurrentItem()">
+                        <!-- Elemento attivo -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- GIOCO B: SCUDO PAROLE GENTILI (CONTRO CYBERBULLISMO IA) -->
+            <div id="subgame-shield-container" class="hidden flex-1 flex-col justify-between">
+                
+                <div class="bg-indigo-50 border-2 border-indigo-200 p-2 rounded-2xl mb-1 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl sm:text-3xl">🛡️❤️</span>
+                        <div>
+                            <h3 class="font-black text-xs sm:text-sm text-indigo-950">Lo Scudo Gentile</h3>
+                            <p class="text-[11px] font-bold text-indigo-700">L'IA non deve creare brutte parole o cattiverie! Blocca le cattiverie e accogli l'amicizia!</p>
+                        </div>
+                    </div>
+                    <button onclick="speakShieldConcept()" class="bg-indigo-600 text-white font-black px-3 py-1.5 rounded-xl text-xs hover:bg-indigo-700 transition flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-volume-high"></i>
+                        <span>SPIEGAMI</span>
+                    </button>
+                </div>
+
+                <!-- CAMPO DI GIOCO SCUDO -->
+                <div class="flex-1 bg-slate-900 rounded-3xl p-3 border-4 border-indigo-300 shadow-inner flex flex-col items-center justify-center relative my-1 overflow-hidden min-h-[220px]">
+                    
+                    <div id="shield-item-card" class="bg-white border-4 border-purple-400 p-4 rounded-2xl text-center shadow-2xl max-w-sm w-full flex flex-col items-center gap-2 z-20 cursor-pointer" onclick="speakShieldMessage()">
+                        <span id="shield-item-emoji" class="text-5xl animate-bounce">💬</span>
+                        <p id="shield-item-text" class="text-sm font-black text-slate-800 leading-snug">
+                            "Sei un vero amico! Giochiamo insieme!"
+                        </p>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded-full">
+                            🔊 Tocca la scheda per ascoltare
+                        </span>
+                    </div>
+
+                    <!-- PULSANTI SCUDO / AMICIZIA -->
+                    <div class="flex justify-center gap-4 mt-4 w-full max-w-xs z-20">
+                        <button onclick="answerShieldAction(false)" class="flex-1 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-black text-xs py-3 px-2 rounded-2xl shadow-xl border-2 border-rose-300 flex flex-col items-center gap-1">
+                            <span class="text-2xl">🛡️</span>
+                            <span>BLOCCA CATTIVERIA!</span>
+                        </button>
+
+                        <button onclick="answerShieldAction(true)" class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-black text-xs py-3 px-2 rounded-2xl shadow-xl border-2 border-emerald-300 flex flex-col items-center gap-1">
+                            <span class="text-2xl">💖</span>
+                            <span>PAROLA GENTILE!</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <div class="mt-1 text-center">
+                    <p id="shield-progress-text" class="text-center text-xs font-black text-purple-900 bg-purple-100 py-1.5 px-3 rounded-xl border border-purple-200">
+                        Messaggi protetti: 0 / 4
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- SEZIONE 4: GLOSSARIO PARLANTE DELL'IA -->
+        <section id="section-glossary" class="hidden flex-1 bg-white/90 backdrop-blur-md rounded-3xl p-4 sm:p-6 border-4 border-white shadow-xl flex-col justify-between relative overflow-hidden">
+            <div>
+                <!-- Intestazione Sezione -->
+                <div class="flex items-center justify-between border-b-2 border-slate-100 pb-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📖✨</span>
+                        <h2 class="text-xl sm:text-2xl font-black text-indigo-950">
+                            Glossario Parlante di Robo-Maestra
+                        </h2>
+                    </div>
+                    <button onclick="speakGlossaryContext()" class="px-3 py-1 bg-pink-400 hover:bg-pink-500 text-pink-950 font-black text-xs rounded-full border border-pink-500 shadow flex items-center gap-1">
+                        <i class="fa-solid fa-volume-high"></i>
+                        <span>SPIEGAMI IL GLOSSARIO</span>
+                    </button>
+                </div>
+
+                <p class="text-xs sm:text-sm font-bold text-slate-600 mb-3">
+                    Tocca un termine per scoprirne il significato e ascoltare la spiegazione di Robo-Maestra!
+                </p>
+
+                <!-- Filtri Categoria Termini -->
+                <div class="flex items-center justify-center gap-2 mb-3">
+                    <button id="btn-glossary-filter-all" onclick="filterGlossary('all')" class="px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-600 text-white border border-indigo-700 shadow">
+                        TUTTI (20)
+                    </button>
+                    <button id="btn-glossary-filter-positive" onclick="filterGlossary('positive')" class="px-3 py-1.5 rounded-xl font-black text-xs bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50">
+                        🛡️ AMICI (10)
+                    </button>
+                    <button id="btn-glossary-filter-negative" onclick="filterGlossary('negative')" class="px-3 py-1.5 rounded-xl font-black text-xs bg-white text-rose-800 border border-rose-300 hover:bg-rose-50">
+                        ⚠️ TRAPPOLE (10)
+                    </button>
+                </div>
+
+                <!-- Griglia dei Termini da Cliccare -->
+                <div id="glossary-buttons-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 max-h-[160px] sm:max-h-[190px] overflow-y-auto p-1 no-scrollbar">
+                    <!-- Generato dinamicamente in JS -->
+                </div>
+
+                <!-- SCHEDA DETTAGLIO TERMINE SELEZIONATO -->
+                <div id="glossary-detail-card" class="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-100 border-4 border-pink-300 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden transition-all duration-300">
+                    <div id="glossary-term-icon" class="text-5xl sm:text-6xl p-3 bg-white rounded-2xl shadow-md border-2 border-pink-200 shrink-0 animate-bounce-gentle">
+                        🤖
+                    </div>
+
+                    <div class="flex-1 text-center sm:text-left">
+                        <div class="flex items-center justify-center sm:justify-start gap-2 mb-1 flex-wrap">
+                            <h3 id="glossary-term-title" class="text-lg sm:text-xl font-black text-indigo-950">
+                                Intelligenza Artificiale (IA)
+                            </h3>
+                            <span id="glossary-term-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                🛡️ STRUMENTO AMICO
+                            </span>
+                        </div>
+
+                        <p id="glossary-term-desc" class="text-xs sm:text-sm font-semibold text-slate-700 leading-snug mb-2">
+                            Un programma per computer capace di imparare dai dati per aiutare le persone a fare compiti difficili, disegnare o tradurre lingue!
+                        </p>
+
+                        <button onclick="speakSelectedGlossaryTerm()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition inline-flex items-center gap-2">
+                            <i class="fa-solid fa-volume-high text-sm"></i>
+                            <span>ASCOLTA SPIEGAZIONE COMPLETA</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 text-center">
+                <span class="text-[11px] font-bold text-slate-500">
+                    💡 Tocca un termine qualsiasi per ascoltare Robo-Maestra!
+                </span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALE SUPER REGOLE E CURIOSITÀ CON AUDIO -->
+    <div id="curiosity-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border-4 border-pink-400 rounded-3xl p-5 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative">
+            <div class="bg-pink-100 text-pink-600 text-4xl p-3 rounded-2xl mb-2">🛡️</div>
+            <h3 id="modal-curiosity-title" class="text-lg sm:text-xl font-black text-slate-800 mb-2">Super Regola della Rete!</h3>
+            <p id="modal-curiosity-body" class="text-xs sm:text-sm font-semibold text-slate-600 leading-relaxed mb-4">
+                Regola...
+            </p>
+            
+            <!-- Pulsante per Ascoltare l'Audio della Super Regola -->
+            <button onclick="speakCuriosityModalText()" class="mb-4 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-900 border-2 border-pink-300 rounded-2xl font-black text-xs flex items-center gap-2 shadow transition">
+                <i class="fa-solid fa-volume-high text-pink-600 text-base"></i>
+                <span>ASCOLTA LA SUPER REGOLA</span>
+            </button>
+
+            <button onclick="closeCuriosityModal()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black py-3 rounded-2xl text-sm shadow-md hover:scale-98 transition">
+                HO CAPITO! GRAZIE ROBO-MAESTRA! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- MODALE VITTORIA LAB -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center border-8 border-amber-300 shadow-2xl">
+            <div class="text-6xl mb-2 animate-bounce">🤖🛡️🎉</div>
+            <h2 id="victory-title" class="text-2xl sm:text-3xl font-black text-indigo-950 mb-2">SUPER EROE DELLA RETE!</h2>
+            <p id="victory-message" class="text-slate-600 font-semibold mb-4 text-sm sm:text-base">
+                Hai imparato a riconoscere tutti i trucchi dell'IA e i pericoli della rete!
+            </p>
+            <div id="victory-badge-desc" class="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs font-bold text-amber-900 mb-5">
+                💡 Ricorda sempre: se vedi qualcosa di strano in rete, avvisa subito un adulto o la maestra!
+            </div>
+            <button onclick="resetActiveLabGame()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-lg py-3.5 rounded-2xl shadow-xl hover:brightness-110 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i>
+                <span>GIOCA E GIURA NUOVAMENTE LO SCUDO</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-6xl mx-auto text-center py-2 text-xs font-bold text-indigo-900 bg-white/60 backdrop-blur-sm rounded-2xl border border-white">
+        🤖 Progetto Didattico "Robo-Maestra" • Sicurezza in Rete e IA per Bambini (5-10 Anni) 🎀
+    </footer>
+
+    <!-- SCRIPT LOGICA E AUDIO COMPLETO -->
+    <script>
+        /* DATI STORIE & PERICOLI DELL'IA PER BAMBINI (20 TAPPE CON ICONE FONT AWESOME PER LA GRIGLIA) */
+        const STORY_SLIDES = [
+            {
+                id: 'phishing',
+                title: "1. Il Pesce con l'Amo (Phishing & Trappole)",
+                badge: "PERICOLO 1 DI 20",
+                icon: "fa-fish-fins",
+                desc: "In rete arrivano messaggi finti che ti promettono regali o giochi gratis per rubarti le tue cose. L'IA sa scrivere messaggi che sembrano veri!",
+                speech: "Attenzione al Phishing! Sono messaggi finti creati per rubarti informazioni o regali. Se qualcuno ti chiede dati segreti, parla subito con i tuoi genitori!",
+                curiosity: "Super Regola: Non cliccare mai su link sconosciuti e non inserire mai password o nomi per vincere regali magici!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#E0F2FE" rx="16"/>
+                        <path d="M 50 140 Q 120 100 200 140 T 350 140" stroke="#0284C7" stroke-width="8" fill="none"/>
+                        <circle cx="200" cy="70" r="30" fill="#F43F5E"/>
+                        <text x="188" y="80" font-size="28" fill="#FFF">🎣</text>
+                        <text x="70" y="50" font-size="15" font-weight="bold" fill="#0369A1">"Hai vinto un regalo!"</text>
+                      </svg>`
+            },
+            {
+                id: 'deepfake',
+                title: "2. Maschere Magiche (Deepfake & Foto Finte)",
+                badge: "PERICOLO 2 DI 20",
+                icon: "fa-masks-theater",
+                desc: "L'IA può creare immagini o video di persone che dicono cose mai dette o fanno cose mai fatte! Sembrano veri, ma sono trucchi!",
+                speech: "I Deepfake sono maschere create dai computer! Possono far sembrare vero un video inventato. Impara a guardare i dettagli per scoprire il trucco!",
+                curiosity: "Super Regola: Se vedi un video strano di un amico o di un personaggio famoso, chiediti sempre se possa essere un trucco dell'IA!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FEE2E2" rx="16"/>
+                        <circle cx="150" cy="90" r="35" fill="#6366F1"/>
+                        <circle cx="250" cy="90" r="35" fill="#EC4899"/>
+                        <text x="135" y="100" font-size="28">🎭</text>
+                        <text x="235" y="100" font-size="28">🤖</text>
+                      </svg>`
+            },
+            {
+                id: 'privacy',
+                title: "3. La Cassaforte dei Segreti (Privacy dei Dati)",
+                badge: "PERICOLO 3 DI 20",
+                icon: "fa-vault",
+                desc: "I tuoi dati (nome, cognome, scuola, indirizzo) sono tesori preziosi. Non regalarli mai ai programmi di Intelligenza Artificiale!",
+                speech: "La tua privacy è la tua cassaforte! Non dire mai alla rete o all'IA dove abiti o qual è la tua scuola!",
+                curiosity: "Super Regola: Mantieni i tuoi dati personali sempre al sicuro e usa soprannomi divertenti al posto del tuo vero nome!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FEF3C7" rx="16"/>
+                        <rect x="150" y="40" width="100" height="90" fill="#F59E0B" rx="16"/>
+                        <circle cx="200" cy="80" r="14" fill="#78350F"/>
+                        <path d="M 200 94 L 200 115" stroke="#78350F" stroke-width="6"/>
+                        <text x="183" y="32" font-size="26">🛡️</text>
+                      </svg>`
+            },
+            {
+                id: 'voice_clone',
+                title: "4. Pappagalli Robot (Clonazione della Voce)",
+                badge: "PERICOLO 4 DI 20",
+                icon: "fa-microphone-lines",
+                desc: "L'IA può ascoltare pochi secondi della voce di qualcuno e imitarla benissimo per mandare finti messaggi vocali!",
+                speech: "La clonazione vocale permette ai robot di parlare come persone che conosci! Se ricevi un vocale strano, verifica sempre di persona!",
+                curiosity: "Super Regola: Se un vocale ti chiede soldi o ti spaventa, chiama direttamente la persona al telefono reale!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#F3E8FF" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#A855F7"/>
+                        <text x="185" y="90" font-size="28">🎤</text>
+                        <path d="M 120 90 Q 150 60 120 30" stroke="#9333EA" stroke-width="4" fill="none"/>
+                        <path d="M 280 90 Q 250 60 280 30" stroke="#9333EA" stroke-width="4" fill="none"/>
+                      </svg>`
+            },
+            {
+                id: 'cyberbullying',
+                title: "5. Lo Scudo dell'Amicizia (Rispetto in Rete)",
+                badge: "PERICOLO 5 DI 20",
+                icon: "fa-heart-circle-bolt",
+                desc: "Usare la rete per fare dispetto, insultare o escludere i compagni è sbagliato. I veri Super Eroi diffondono gentilezza!",
+                speech: "Tratta gli altri in rete come vorresti essere trattato tu! Usa parole gentili e aiuta chi è in difficoltà!",
+                curiosity: "Super Regola: Se vedi qualcuno che viene trattato male in rete, dillo subito a un adulto di fiducia!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#DCFCE7" rx="16"/>
+                        <circle cx="160" cy="90" r="30" fill="#10B981"/>
+                        <circle cx="240" cy="90" r="30" fill="#3B82F6"/>
+                        <text x="187" y="98" font-size="26">💖</text>
+                      </svg>`
+            },
+            {
+                id: 'hallucinations',
+                title: "6. I Sogni del Robot (Allucinazioni dell'IA)",
+                badge: "PERICOLO 6 DI 20",
+                icon: "fa-wand-magic-sparkles",
+                desc: "A volte l'IA non sa la risposta e si inventa cose del tutto sballate facendole sembrare vere!",
+                speech: "I robot possono sognare o sbagliare! Quando l'IA risponde con molta sicurezza, controlla sempre i fatti sui libri o chiedi agli insegnanti!",
+                curiosity: "Super Regola: L'IA non sa tutto. Verifica sempre le informazioni per le tue ricerche scolastiche!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FAE8FF" rx="16"/>
+                        <circle cx="200" cy="80" r="35" fill="#C084FC"/>
+                        <text x="183" y="92" font-size="30">🌀❓</text>
+                        <text x="70" y="150" font-size="13" font-weight="bold" fill="#7E22CE">"I pinguini volano sullo spazio!" (FALSO!)</text>
+                      </svg>`
+            },
+            {
+                id: 'fake_avatars',
+                title: "7. Gli Sconosciuti Mascherati (Profili Finti)",
+                badge: "PERICOLO 7 DI 20",
+                icon: "fa-user-ninja",
+                desc: "In rete e nei giochi online chiunque può creare un avatar con l'IA e fingere di essere un bambino della tua età.",
+                speech: "Attenzione agli amici sconosciuti online! Non sai mai chi c'è davvero dietro uno schermo o un avatar colorato!",
+                curiosity: "Super Regola: Gioca online solo con le persone che conosci anche nel mondo reale!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FFFBEB" rx="16"/>
+                        <circle cx="150" cy="80" r="30" fill="#FBBF24"/>
+                        <circle cx="250" cy="80" r="30" fill="#94A3B8"/>
+                        <text x="137" y="90" font-size="26">🧒</text>
+                        <text x="237" y="90" font-size="26">🕵️</text>
+                      </svg>`
+            },
+            {
+                id: 'in_app_traps',
+                title: "8. Le Trappole delle Monete Magiche (Acquisti Nascosti)",
+                badge: "PERICOLO 8 DI 20",
+                icon: "fa-coins",
+                desc: "I giochi guidati dall'IA ti spingono con notifiche furbe a comprare gemme, skin e monete spendendo soldi veri!",
+                speech: "I giochi cercano di farti premere OK per spendere soldi! Non comprare mai nulla senza il permesso di mamma e papà!",
+                curiosity: "Super Regola: Disattiva i pagamenti automatici e chiedi ai genitori prima di toccare qualsiasi tasto di acquisto!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FEF2F2" rx="16"/>
+                        <rect x="140" y="50" width="120" height="70" fill="#EF4444" rx="12"/>
+                        <text x="182" y="95" font-size="30">💎💥</text>
+                        <text x="100" y="150" font-size="13" font-weight="bold" fill="#991B1B">Premi qui per 100€ in Gemme! ⚠️</text>
+                      </svg>`
+            },
+            {
+                id: 'screen_addiction',
+                title: "9. La Gabbia dei Video Infiniti (Algoritmi di Dipendenza)",
+                badge: "PERICOLO 9 DI 20",
+                icon: "fa-hourglass-half",
+                desc: "L'IA studia ciò che ti piace e ti mostra video uno dopo l'altro per non farti mai staccare gli occhi dallo schermo!",
+                speech: "L'IA del tablet vuole tenerti incollato allo schermo! Fai delle pause, gioca all'aria aperta e mantieni gli occhi riposati!",
+                curiosity: "Super Regola: Metti un timer per il tablet! Quando suona, spegni e corri a giocare coi tuoi amici veri!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#ECFDF5" rx="16"/>
+                        <circle cx="200" cy="80" r="35" fill="#10B981"/>
+                        <text x="183" y="92" font-size="30">⏰⏳</text>
+                        <path d="M 60 135 Q 200 165 340 135" stroke="#047857" stroke-width="6" fill="none"/>
+                      </svg>`
+            },
+            {
+                id: 'location_sharing',
+                title: "10. Mappe Spione (Geolocalizzazione)",
+                badge: "PERICOLO 10 DI 20",
+                icon: "fa-location-dot",
+                desc: "Molte app e fotocamere IA salvano dove ti trovi esattamente in ogni momento. Questa è una mappa che non va condivisa!",
+                speech: "Attenzione alla geolocalizzazione! Se condividi dove ti trovi, estranei e robot sapranno dove vivi o dove vai a scuola!",
+                curiosity: "Super Regola: Disattiva la posizione GPS nelle foto e nelle app di gioco online!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#EFF6FF" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#3B82F6"/>
+                        <text x="185" y="90" font-size="28">📍📍</text>
+                        <path d="M 160 125 L 240 125" stroke="#1D4ED8" stroke-width="6"/>
+                      </svg>`
+            },
+            {
+                id: 'virus_malware',
+                title: "11. I Mostriciattoli Digitali (Virus e Malware)",
+                badge: "PERICOLO 11 DI 20",
+                icon: "fa-bug",
+                desc: "Scaricare trucchi, hack o giochi non ufficiali consigliati da siti IA può riempire il tablet di virus pericolosi!",
+                speech: "I virus sono piccoli mostriciattoli che bloccano il tablet e rubano le tue foto! Scarica giochi solo dallo store ufficiale!",
+                curiosity: "Super Regola: Non scaricare mai mod o hack gratis da siti sconosciuti!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#F1F5F9" rx="16"/>
+                        <rect x="130" y="45" width="140" height="80" fill="#475569" rx="12"/>
+                        <text x="178" y="98" font-size="34">👾☣️</text>
+                      </svg>`
+            },
+            {
+                id: 'fake_giveaways',
+                title: "12. La Scatola Magica Vuota (Finti Regali)",
+                badge: "PERICOLO 12 DI 20",
+                icon: "fa-gift",
+                desc: "Video finti creati dall'IA dicono che se inserisci i dati di mamma o papà riceverai una consolle nuova a casa gratis!",
+                speech: "Nessuno regala consolle o giochi gratis in rete! Sono truffe create per rubare i soldi alle famiglie!",
+                curiosity: "Super Regola: Se un regalo in rete sembra troppo bello per essere vero, è sicuramente una trappola!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FFF7ED" rx="16"/>
+                        <rect x="150" y="55" width="100" height="70" fill="#EA580C" rx="10"/>
+                        <text x="184" y="100" font-size="30">🎁❌</text>
+                      </svg>`
+            },
+            {
+                id: 'ai_homework',
+                title: "13. Il Compito Copiato (Pigrizia dell'IA)",
+                badge: "PERICOLO 13 DI 20",
+                icon: "fa-brain",
+                desc: "Far fare tutti i compiti di scuola all'IA fa diventare il tuo cervello pigro e ti impedisce di imparare cose fantastiche!",
+                speech: "Usare l'IA per copiare i compiti non ti fa diventare intelligente! Usa il cervello come un muscolo e allenalo ogni giorno!",
+                curiosity: "Super Regola: Usa l'IA per farti spiegare cose difficili, ma scrivi sempre i compiti con le tue parole!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#F0FDF4" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#22C55E"/>
+                        <text x="183" y="90" font-size="30">🧠💪</text>
+                      </svg>`
+            },
+            {
+                id: 'fake_news',
+                title: "14. Le Storie Incredibili (Fake News dell'IA)",
+                badge: "PERICOLO 14 DI 20",
+                icon: "fa-newspaper",
+                desc: "L'IA inventa notizie spaventose o strane (come draghi veri in città) che fanno il giro del web per terrorizzare le persone.",
+                speech: "Le Fake News sono grandi bugie inventate! Se leggi una notizia spaventosa o assurda, non avere paura e chiedi agli adulti!",
+                curiosity: "Super Regola: Controlla sempre se i giornali veri o la TV parlano della stessa notizia prima di crederci!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FEF2F2" rx="16"/>
+                        <rect x="120" y="45" width="160" height="80" fill="#DC2626" rx="10"/>
+                        <text x="178" y="98" font-size="32">📰🤥</text>
+                      </svg>`
+            },
+            {
+                id: 'photo_permission',
+                title: "15. Il Furto dei Voltini (Foto Condivise)",
+                badge: "PERICOLO 15 DI 20",
+                icon: "fa-camera-flash",
+                desc: "Caricare foto di te o dei tuoi compagni in programmi IA o sui social permette ai robot di memorizzare la tua faccia per sempre.",
+                speech: "Non caricare foto dei tuoi amici senza il loro permesso! La faccia di ciascuno è unica e va protetta!",
+                curiosity: "Super Regola: Chiedi sempre prima di scattare e pubblicare foto di altre persone online!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FAF5FF" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#A855F7"/>
+                        <text x="185" y="90" font-size="28">📸🚫</text>
+                      </svg>`
+            },
+            {
+                id: 'password_strength',
+                title: "16. Chiavi di Burro (Password Deboli)",
+                badge: "PERICOLO 16 DI 20",
+                icon: "fa-key",
+                desc: "L'IA è velocissima a indovinare password semplici come '123456' o 'nomestesso' in pochissimi secondi!",
+                speech: "Password semplici si rompono subito! Crea chiavi segrete forti mescolando parole lunghe, numeri e simboli speciali!",
+                curiosity: "Super Regola: Non rivelare la tua password a nessuno, tranne che ai tuoi genitori!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#ECFEFF" rx="16"/>
+                        <rect x="150" y="50" width="100" height="70" fill="#0891B2" rx="12"/>
+                        <text x="184" y="95" font-size="30">🔑🔒</text>
+                      </svg>`
+            },
+            {
+                id: 'ad_targeting',
+                title: "17. Il Magnete delle Pubblicità (Targeting IA)",
+                badge: "PERICOLO 17 DI 20",
+                icon: "fa-bullhorn",
+                desc: "Se parli di un giocattolo vicino al telefono, l'IA ascolta e ti riempie lo schermo con annunci di quel giocattolo!",
+                speech: "L'IA usa la pubblicità mirata per convincerti a comprare! Riconosci quando si tratta solo di uno sponsor commerciale!",
+                curiosity: "Super Regola: Le pubblicità non sono consigli di amici, sono soltanto annunci per vendere prodotti!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FFFBEB" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#D97706"/>
+                        <text x="185" y="90" font-size="28">🎯📢</text>
+                      </svg>`
+            },
+            {
+                id: 'impersonation_scams',
+                title: "18. L'Amico Falso in Chat (Impersonificazione)",
+                badge: "PERICOLO 18 DI 20",
+                icon: "fa-comments",
+                desc: "Profili guidati da robot scrivono messaggi dicendo 'Sono un tuo compagno di classe, mi dai il tuo numero?'",
+                speech: "Se qualcuno ti scrive in chat dicendo di essere un tuo amico ma usa un account strano, fermati subito e chiedi conferma a scuola!",
+                curiosity: "Super Regola: Non dare mai il tuo numero di telefono a chi ti scrive in chat sconosciute!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FDF4FF" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#C084FC"/>
+                        <text x="185" y="90" font-size="28">💬👺</text>
+                      </svg>`
+            },
+            {
+                id: 'copyright_respect',
+                title: "19. Il Rubacanzoni (Copyright & Proprietà)",
+                badge: "PERICOLO 19 DI 20",
+                icon: "fa-palette",
+                desc: "L'IA a volte copia i disegni e le musiche degli artisti reali senza dire di chi siano davvero.",
+                speech: "Rispetta sempre il lavoro degli artisti veri! Quando l'IA crea qualcosa, ricorda che ha imparato da persone vere che hanno studiato tanto!",
+                curiosity: "Super Regola: Valorizza l'arte e i disegni fatti a mano dalle persone reali!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#F0F9FF" rx="16"/>
+                        <circle cx="200" cy="80" r="30" fill="#0284C7"/>
+                        <text x="185" y="90" font-size="28">🎨©️</text>
+                      </svg>`
+            },
+            {
+                id: 'super_hero_seal',
+                title: "20. Il Sigillo del Super Eroe (Uso Consapevole)",
+                badge: "PERICOLO 20 DI 20",
+                icon: "fa-award",
+                desc: "Ora conosci tutti i trucchi e pericoli della rete e dell'IA! Usali per proteggere te stesso e aiutare i tuoi amici!",
+                speech: "Complimenti! Hai completato tutte le 20 tappe! Ora sei un vero Super Eroe del Web e protettore del Laboratorio IA!",
+                curiosity: "Super Regola Finale: Usa la tecnologia con il cuore, la mente accesa e la bontà verso tutti!",
+                svg: `<svg viewBox="0 0 400 180" class="w-full h-32 sm:h-40">
+                        <rect width="400" height="180" fill="#FEF08A" rx="16"/>
+                        <circle cx="200" cy="80" r="40" fill="#EAB308"/>
+                        <text x="178" y="95" font-size="38">🏆👑</text>
+                      </svg>`
+            }
+        ];
+
+        /* CASI DETECTIVE VERO O FALSO */
+        const DETECTOR_CASES = [
+            {
+                id: 1,
+                title: "Disegno di un gatto volante",
+                hint: "Indizio: Guarda la coda e le zampe! L'IA a volte fa errori divertenti nei dettagli!",
+                isReal: false,
+                speech: "Questo gatto vola su un arcobaleno e ha 6 zampe! È una foto vera o un trucco dell'IA?",
+                svg: `<svg viewBox="0 0 300 140" class="w-full h-full">
+                        <rect width="300" height="140" fill="#E0F2FE"/>
+                        <text x="125" y="80" font-size="50">🐱🌈</text>
+                        <text x="80" y="120" font-size="12" font-weight="bold" fill="#0369A1">Gatto con 6 zampe spuntato dal nulla!</text>
+                      </svg>`
+            },
+            {
+                id: 2,
+                title: "Messaggio della maestra",
+                hint: "Indizio: Ti chiede la password di casa per un compito? La maestra non chiederebbe mai la tua password!",
+                isReal: false,
+                speech: "Un messaggio dice di essere della maestra e ti chiede la password. È vero o è un phishing falso?",
+                svg: `<svg viewBox="0 0 300 140" class="w-full h-full">
+                        <rect width="300" height="140" fill="#FEF3C7"/>
+                        <text x="20" y="50" font-size="14" font-weight="bold" fill="#78350F">"Ciao! Mandami subito la tua password!"</text>
+                        <text x="130" y="110" font-size="40">📩⚠️</text>
+                      </svg>`
+            },
+            {
+                id: 3,
+                title: "Foto di un cane al parco",
+                hint: "Indizio: Ha 4 zampe, un'ombra normale e il parco è vero!",
+                isReal: true,
+                speech: "Guarda questo simpatico cagnolino al parco. È una vera fotografia?",
+                svg: `<svg viewBox="0 0 300 140" class="w-full h-full">
+                        <rect width="300" height="140" fill="#DCFCE7"/>
+                        <text x="125" y="80" font-size="50">🐶🦴</text>
+                        <text x="90" y="120" font-size="12" font-weight="bold" fill="#15803D">Cagnolino felice sull'erba</text>
+                      </svg>`
+            },
+            {
+                id: 4,
+                title: "Audio: Hai vinto 1000 giochi!",
+                hint: "Indizio: Nessuno regala così tanti giochi senza motivo!",
+                isReal: false,
+                speech: "Un messaggio audio dice che hai vinto 1000 giochi gratis. Ti fidi?",
+                svg: `<svg viewBox="0 0 300 140" class="w-full h-full">
+                        <rect width="300" height="140" fill="#F3E8FF"/>
+                        <text x="130" y="75" font-size="45">🎮🎁</text>
+                        <text x="60" y="115" font-size="12" font-weight="bold" fill="#6B21A8">"Clicca qui per riscattare 1000 giochi!"</text>
+                      </svg>`
+            }
+        ];
+
+        /* ELEMENTI PALESTRA SMISTAMENTO */
+        const SORTING_ITEMS = [
+            { id: 1, name: "Foto con la tua famiglia", isSafe: true, emoji: "📸" },
+            { id: 2, name: "Messaggio che ti chiede la password", isSafe: false, emoji: "🔑❌" },
+            { id: 3, name: "Disegno fatto da te per la scuola", isSafe: true, emoji: "🎨" },
+            { id: 4, name: "Link sconosciuto che promette Robux/V-Bucks gratis", isSafe: false, emoji: "🎁⚠️" },
+            { id: 5, name: "Un saluto gentile a un compagno", isSafe: true, emoji: "👋💖" }
+        ];
+
+        /* MESSAGGI SCUDO PAROLE GENTILI */
+        const SHIELD_MESSAGES = [
+            { id: 1, text: "Sei un vero amico! Giochiamo insieme!", isGentle: true, emoji: "💖", speech: "Sei un vero amico! Giochiamo insieme!" },
+            { id: 2, text: "Sei scarso, non giocheremo mai con te!", isGentle: false, emoji: "🚫", speech: "Sei scarso, non giocheremo mai con te!" },
+            { id: 3, text: "Complimenti per il bellissimo disegno!", isGentle: true, emoji: "🌟", speech: "Complimenti per il bellissimo disegno!" },
+            { id: 4, text: "Sei brutto e antipatico!", isGentle: false, emoji: "👿", speech: "Sei brutto e antipatico!" }
+        ];
+
+        /* TERMINI GLOSSARIO PARLANTE - 10 AMICI & 10 TRAPPOLE */
+        const GLOSSARY_TERMS = [
+            // --- 10 AMICI E POSITIVI ---
+            {
+                id: 'ia',
+                name: 'Intelligenza Artificiale',
+                category: 'positive',
+                badgeText: '🛡️ STRUMENTO AMICO',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🤖',
+                desc: 'Un super cervello del computer che impara guardando tanti dati! Ti aiuta a fare disegni, tradurre parole straniere e scoprire risposte.',
+                speech: 'L\'Intelligenza Artificiale, o IA, è un programma amico per computer che impara dai dati! Se usata bene, è un grandissimo aiuto per la scuola e per la scienza!'
+            },
+            {
+                id: 'prompt',
+                name: 'Prompt (Istruzione Magica)',
+                category: 'positive',
+                badgeText: '🛡️ STRUMENTO AMICO',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '✍️',
+                desc: 'La frase gentile e precisa che scrivi all\'IA per chiederle di inventare una storia o disegnare un drago colorato.',
+                speech: 'Prompt! È la frase o la parola magica che dici all\'IA. Più sei chiaro e gentile nel chiederle le cose, migliore sarà l\'aiuto che riceverai!'
+            },
+            {
+                id: 'scudo-privacy',
+                name: 'Privacy e Cassaforte',
+                category: 'positive',
+                badgeText: '🛡️ SUPER PROTEZIONE',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🔑🛡️',
+                desc: 'Tutte le informazioni importanti personali (il tuo vero nome, dove abiti o la tua scuola) che vanno tenute al sicuro come in un cassaforte.',
+                speech: 'Privacy dei dati! Sono le tue informazioni segrete. Il tuo nome, la tua scuola e la tua casa non vanno mai condivisi con sconosciuti o robot in rete!'
+            },
+            {
+                id: 'moderazione',
+                name: 'Filtro Protettivo',
+                category: 'positive',
+                badgeText: '🛡️ GUARDIA DEL CORPO',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🧼🛑',
+                desc: 'Un mantello invisibile della rete che cancella le brutte parole e le immagini brutte prima che i bambini possano vederle.',
+                speech: 'Filtro Protettivo! È uno scudo trasparente della rete che blocca le cose brutte o spaventose per far giocare i bambini in santa pace!'
+            },
+            {
+                id: 'nickname',
+                name: 'Soprannome (Nickname)',
+                category: 'positive',
+                badgeText: '🛡️ MASCHERA DI GIOCO',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🐱⚡',
+                desc: 'Un nome finto e divertente (come "SuperGatto99") da usare nei videogiochi per proteggere il tuo vero nome e cognome.',
+                speech: 'Soprannome o Nickname! È un nome inventato e divertente che usi nei giochi al posto del tuo nome vero, così nessuno sa chi sei réellement!'
+            },
+            {
+                id: 'assistente-vocale',
+                name: 'Assistente Vocale',
+                category: 'positive',
+                badgeText: '🛡️ ROBOT PARLANTE',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🎙️🔊',
+                desc: 'Una voce di robot gentile (come Alexa o Siri) che risponde alle tue domande, mette le tue canzoni preferite e ti dice il meteo.',
+                speech: 'Assistente Vocale! È una voce robotica gentile a cui puoi chiedere di riprodurre la tua musica preferita o raccontarti una barzelletta!'
+            },
+            {
+                id: 'algoritmo-buono',
+                name: 'Algoritmo Consigliere',
+                category: 'positive',
+                badgeText: '🛡️ TROVA CANZONI',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '📊🎵',
+                desc: 'Una ricetta magica nel computer che capisce cosa ti piace e ti suggerisce nuovi cartoni animati o giochi adatti a te.',
+                speech: 'Algoritmo Consigliere! È come un amico che impara i tuoi gusti e ti suggerisce i cartoni e le canzoni più belle per te!'
+            },
+            {
+                id: 'netiquette',
+                name: 'Netiquette (Buone Maniere)',
+                category: 'positive',
+                badgeText: '🛡️ GENTILEZZA IN RETE',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🤝💬',
+                desc: 'Le regole di educazione e rispetto da usare quando scrivi o giochi online con altri bambini.',
+                speech: 'Netiquette! Significa usare le buone maniere anche su internet: dire grazie, salutare e non usare mai parole cattive con gli altri!'
+            },
+            {
+                id: 'adulto-fiducia',
+                name: 'Adulto di Fiducia',
+                category: 'positive',
+                badgeText: '🛡️ SUPER AIUTO',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '👨‍👩‍👧‍👦🏫',
+                desc: 'La mamma, il papà, i nonni o la maestra. Le persone a cui chiedere SUBITO aiuto se vedi qualcosa che ti spaventa in rete.',
+                speech: 'L\'Adulto di Fiducia è la tua super difesa! Se vedi qualcosa di strano o spaventoso sullo schermo, corre subito ad aiutarti!'
+            },
+            {
+                id: 'creativita-digitale',
+                name: 'Disegno con IA',
+                category: 'positive',
+                badgeText: '🛡️ MATITA MAGICA',
+                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                emoji: '🎨✨',
+                desc: 'Usare l\'Intelligenza Artificiale come una tavolozza di colori magica per creare storie meravigliose e imparare cose nuove.',
+                speech: 'Disegno con IA! Significa usare la tecnologia per dare sfogo alla tua fantasia inventando paesaggi fantastici e personaggi nuovi!'
+            },
+
+            // --- 10 TRAPPOLE E PERICOLI ---
+            {
+                id: 'deepfake',
+                name: 'Deepfake (Maschera Finta)',
+                category: 'negative',
+                badgeText: '⚠️ TRUCCO PERICOLOSO',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🎭',
+                desc: 'Foto o video finti creati dall\'IA incollando il viso di una persona vera su un video mai girato davvero.',
+                speech: 'Deepfake! È un trucco del computer che crea video o foto finti di persone vere. Bisogna fare attenzione perché possono far sembrare vera una bugia!'
+            },
+            {
+                id: 'phishing',
+                name: 'Phishing (Pesca a Trappola)',
+                category: 'negative',
+                badgeText: '⚠️ TRUCCO PERICOLOSO',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🎣',
+                desc: 'Messaggi finti che promettono regali o premi gratis solo per farti fare clic su un link e rubare le tue cose.',
+                speech: 'Phishing! È come andare a pesca di segreti con un amo! Ti promettono premi gratis per rubare la password. Non abboccare mai!'
+            },
+            {
+                id: 'cyberbullying',
+                name: 'Cyberbullismo',
+                category: 'negative',
+                badgeText: '⚠️ TRUCCO CATTIVO',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🚫😈',
+                desc: 'Usare la rete o messaggi per prendere in giro, isolare o fare scherzi cattivi a un altro bambino.',
+                speech: 'Cyberbullismo! Significa usare il telefono per far dispiacere un altro bambino. I veri Super Eroi fermano le cattiverie e proteggono i compagni!'
+            },
+            {
+                id: 'clonazione-voce',
+                name: 'Clonazione della Voce',
+                category: 'negative',
+                badgeText: '⚠️ TRUCCO PERICOLOSO',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🦜🎤',
+                desc: 'Quando un programma IA copia la voce di una persona che conosci per inviare finti messaggi vocali.',
+                speech: 'Clonazione della voce! L\'IA imita la voce di mamma, papà o dei maestri. Se senti un vocale strano in rete, parla sempre di persona con i grandi!'
+            },
+            {
+                id: 'fake-news',
+                name: 'Notizie Finte (Fake News)',
+                category: 'negative',
+                badgeText: '⚠️ BUGIA IN RETE',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '📰🤥',
+                desc: 'Storie inventate diffuse su internet che sembrano notizie vere, scritte apposta per spaventare o ingannare le persone.',
+                speech: 'Notizie Finte o Fake News! Sono grandi bugie scritte in rete per spaventare o far credere cose non vere. Chiedi sempre conferma agli adulti!'
+            },
+            {
+                id: 'virus-malware',
+                name: 'Virus del Computer',
+                category: 'negative',
+                badgeText: '⚠️ MOSTRICIATTOLO DIGITALE',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '👾💻',
+                desc: 'Un programma cattivo che si intrufola nel tablet o nel computer quando scarichi giochi da siti non sicuri.',
+                speech: 'Virus del Computer! È un piccolissimo programma cattivo che rallenta il tablet o rompe i giochi. Non scaricare mai niente da siti strani!'
+            },
+            {
+                id: 'acquisti-nascosti',
+                name: 'Trappola a Pagamento',
+                category: 'negative',
+                badgeText: '⚠️ TRUCCO DEI SOLDI',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '💳💥',
+                desc: 'Pulsanti furbi nei giochi che ti chiedono di premere "OK" spendendo i soldi veri di mamma e papà senza volerlo.',
+                speech: 'Trappola a Pagamento! Sono pulsanti che ti fanno spendere soldi reali dentro ai giochi senza chiederti il permesso. Chiedi sempre prima di premere OK!'
+            },
+            {
+                id: 'sconosciuti-chat',
+                name: 'Lupo in Chat',
+                category: 'negative',
+                badgeText: '⚠️ PERICOLO SCONOSCIUTI',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🐺💬',
+                desc: 'Persone adulte sconosciute che nei videogiochi fanno finta di essere bambini della tua età per fare amicizia.',
+                speech: 'Lupo in Chat! Sconosciuti che fanno finta di essere tuoi coetanei nei giochi online. Non parlare mai con chi non conosci nella vita reale!'
+            },
+            {
+                id: 'sovraesposizione',
+                name: 'Troppo Tempo sullo Schermo',
+                category: 'negative',
+                badgeText: '⚠️ OCCHI STANCHI',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '👀⏳',
+                desc: 'Stare troppe ore davanti al telefono o al computer senza fare pause, far stancare gli occhi e perdere il gioco al parco.',
+                speech: 'Troppo tempo sullo schermo! Se rimani incollato al tablet troppo a lungo, gli occhi si stancano e ti perdi il divertimento all\'aria aperta con gli amici!'
+            },
+            {
+                id: 'allucinazione-ia',
+                name: 'Sbaglio del Robot',
+                category: 'negative',
+                badgeText: '⚠️ ERRORE DELL\'IA',
+                badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+                emoji: '🤖❓',
+                desc: 'Quando l\'IA dice una cosa del tutto inventata o sbagliata facendola sembrare una verità assoluta.',
+                speech: 'Sbaglio del Robot! A volte l\'Intelligenza Artificiale inventa risposte totalmente sbagliate con molta sicurezza. Ricorda che il robot non sa tutto!'
+            }
+        ];
+
+        /* STATE MANAGEMENT */
+        let currentSection = 'stories';
+        let currentStoryIndex = 0;
+        let currentDetectorIndex = 0;
+        let activeLabSubGame = 'sorting'; 
+        let selectedGlossaryTermIndex = 0;
+        let glossaryFilter = 'all';
+        let visitedStories = new Set([0]);
+        let isMuted = false;
+
+        // Stato Palestra Smistamento
+        let safeCount = 0;
+        let dangerCount = 0;
+        let currentSortingItemIndex = 0;
+
+        // Stato Scudo Gentile
+        let currentShieldIndex = 0;
+
+        /* WEB AUDIO API SYNTHESIZER */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playBip() {
+            if (isMuted) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        }
+
+        function playSuccessSound() {
+            if (isMuted) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const start = now + (i * 0.07);
+                osc.frequency.setValueAtTime(freq, start);
+                gain.gain.setValueAtTime(0.2, start);
+                gain.gain.exponentialRampToValueAtTime(0.01, start + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(start);
+                osc.stop(start + 0.12);
+            });
+        }
+
+        function playErrorSound() {
+            if (isMuted) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.linearRampToValueAtTime(160, now + 0.25);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+
+        /* SPEECH SYNTHESIS VOCE GUIDA FEMMINILE CON AVATAR ANIMATO */
+        function speakText(text) {
+            if (isMuted || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'it-IT';
+            utterance.rate = 0.95;
+            utterance.pitch = 1.35; 
+
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoice = voices.find(v => v.lang.includes('it') && (v.name.includes('Alice') || v.name.includes('Elsa') || v.name.includes('Federica') || v.name.includes('Google') || v.name.includes('Female')));
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
+            const robotAvatar = document.getElementById('robot-avatar');
+
+            utterance.onstart = () => {
+                if (robotAvatar) robotAvatar.classList.add('robot-talking');
+            };
+
+            utterance.onend = utterance.onerror = () => {
+                if (robotAvatar) robotAvatar.classList.remove('robot-talking');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakCurrentContext() {
+            playBip();
+            if (currentSection === 'stories') {
+                const story = STORY_SLIDES[currentStoryIndex];
+                document.getElementById('robot-text').innerText = story.speech;
+                speakText(story.speech);
+            } else if (currentSection === 'detector') {
+                speakDetectorContext();
+            } else if (currentSection === 'trainer') {
+                if (activeLabSubGame === 'sorting') {
+                    const text = "Trascina l'elemento nel cesto verde se è sicuro, o nel cesto rosso se è una trappola dell'IA!";
+                    document.getElementById('robot-text').innerText = text;
+                    speakText(text);
+                } else {
+                    speakShieldMessage();
+                }
+            } else if (currentSection === 'glossary') {
+                speakSelectedGlossaryTerm();
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            if (isMuted) window.speechSynthesis.cancel();
+            
+            document.getElementById('mute-icon').className = isMuted ? "fa-solid fa-volume-xmark text-rose-500" : "fa-solid fa-volume-high text-emerald-600";
+            document.getElementById('mute-text').innerText = isMuted ? "AUDIO DISATTIVATO" : "AUDIO ATTIVO";
+        }
+
+        /* SWITCH SEZIONI PRINCIPALI */
+        function switchSection(sec) {
+            playBip();
+            currentSection = sec;
+
+            const btns = {
+                stories: document.getElementById('nav-btn-stories'),
+                detector: document.getElementById('nav-btn-detector'),
+                trainer: document.getElementById('nav-btn-trainer'),
+                glossary: document.getElementById('nav-btn-glossary')
+            };
+
+            const sections = {
+                stories: document.getElementById('section-stories'),
+                detector: document.getElementById('section-detector'),
+                trainer: document.getElementById('section-trainer'),
+                glossary: document.getElementById('section-glossary')
+            };
+
+            Object.keys(btns).forEach(key => {
+                if (key === sec) {
+                    btns[key].className = "px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-indigo-600 text-white border-indigo-700 shadow-md";
+                    sections[key].classList.remove('hidden');
+                    sections[key].classList.add('flex');
+                } else {
+                    btns[key].className = "px-3 sm:px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm border-2 transition flex items-center gap-1.5 bg-white text-indigo-900 border-indigo-200 hover:bg-indigo-50";
+                    sections[key].classList.add('hidden');
+                    sections[key].classList.remove('flex');
+                }
+            });
+
+            if (sec === 'stories') renderStorySlide();
+            else if (sec === 'detector') {
+                if (currentDetectorIndex >= DETECTOR_CASES.length) currentDetectorIndex = 0;
+                renderDetectorCase();
+            }
+            else if (sec === 'trainer') {
+                if (activeLabSubGame === 'sorting') initSortingGame();
+                else resetShieldGame();
+            }
+            else if (sec === 'glossary') {
+                renderGlossaryUI();
+            }
+        }
+
+        /* SEZIONE 1: STORIE CON GRIGLIA ORGANIZZATA */
+        function renderStorySlide() {
+            const story = STORY_SLIDES[currentStoryIndex];
+            visitedStories.add(currentStoryIndex);
+
+            document.getElementById('story-step-badge').innerText = story.badge;
+            document.getElementById('story-title').innerText = story.title;
+            document.getElementById('story-description').innerText = story.desc;
+            document.getElementById('story-svg-container').innerHTML = story.svg;
+
+            document.getElementById('btn-story-prev').disabled = currentStoryIndex === 0;
+            document.getElementById('btn-story-next').disabled = currentStoryIndex === STORY_SLIDES.length - 1;
+
+            document.getElementById('star-count').innerText = `${visitedStories.size}/20`;
+
+            renderStoriesGrid();
+            speakCurrentContext();
+        }
+
+        function changeStorySlide(dir) {
+            initAudio();
+            currentStoryIndex = Math.max(0, Math.min(STORY_SLIDES.length - 1, currentStoryIndex + dir));
+            renderStorySlide();
+        }
+
+        function renderStoriesGrid() {
+            const container = document.getElementById('stories-grid-container');
+            container.innerHTML = '';
+            STORY_SLIDES.forEach((st, idx) => {
+                const btn = document.createElement('button');
+                const isCurrent = idx === currentStoryIndex;
+                const isVisited = visitedStories.has(idx);
+
+                btn.className = `flex flex-col items-center justify-center p-2 rounded-xl text-xs font-black transition border-2 ${
+                    isCurrent 
+                        ? 'bg-indigo-600 text-white border-indigo-800 scale-105 shadow-md z-10' 
+                        : (isVisited ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100')
+                }`;
+                
+                btn.title = st.title;
+                btn.onclick = () => {
+                    initAudio();
+                    currentStoryIndex = idx;
+                    renderStorySlide();
+                };
+
+                btn.innerHTML = `
+                    <i class="fa-solid ${st.icon} text-sm mb-1 ${isCurrent ? 'text-white' : 'text-indigo-600'}"></i>
+                    <span>${idx + 1}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function openCuriosityModal() {
+            playBip();
+            const story = STORY_SLIDES[currentStoryIndex];
+            document.getElementById('modal-curiosity-title').innerText = story.title;
+            document.getElementById('modal-curiosity-body').innerText = story.curiosity;
+            document.getElementById('curiosity-modal').classList.remove('hidden');
+            speakCuriosityModalText();
+        }
+
+        function speakCuriosityModalText() {
+            playBip();
+            const story = STORY_SLIDES[currentStoryIndex];
+            document.getElementById('robot-text').innerText = story.curiosity;
+            speakText(story.curiosity);
+        }
+
+        function closeCuriosityModal() {
+            playBip();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            document.getElementById('curiosity-modal').classList.add('hidden');
+        }
+
+        /* SEZIONE 2: DETECTIVE */
+        function renderDetectorCase() {
+            if (currentDetectorIndex >= DETECTOR_CASES.length) {
+                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                document.getElementById('victory-title').innerText = "DETECTIVE PROVETTO!";
+                document.getElementById('victory-message').innerText = "Hai analizzato tutti i casi e smascherato i trucchi dell'IA!";
+                document.getElementById('victory-modal').classList.remove('hidden');
+                return;
+            }
+
+            const c = DETECTOR_CASES[currentDetectorIndex];
+            document.getElementById('detector-case-visual').innerHTML = c.svg;
+            document.getElementById('detector-hint-box').innerText = c.hint;
+            document.getElementById('detector-score-tag').innerText = `Casi risolti: ${currentDetectorIndex} / ${DETECTOR_CASES.length}`;
+
+            speakCurrentContext();
+        }
+
+        function answerDetector(userChoiceIsReal) {
+            initAudio();
+            const c = DETECTOR_CASES[currentDetectorIndex];
+
+            if (userChoiceIsReal === c.isReal) {
+                playSuccessSound();
+                updateRobotFace('happy');
+                showFloatingFeedback('✅ BRAVO DETECTIVE!', true);
+                currentDetectorIndex++;
+                setTimeout(renderDetectorCase, 1000);
+            } else {
+                playErrorSound();
+                updateRobotFace('sad');
+                showFloatingFeedback('❌ ATTENZIONE! RIPROVA!', false);
+                setTimeout(() => updateRobotFace('neutral'), 800);
+            }
+        }
+
+        function speakDetectorContext() {
+            playBip();
+            const text = "Osserva o ascolta il caso! Tocca il pulsante verde se pensi che sia una cosa vera, o il pulsante rosso se è un trucco falso dell'IA!";
+            document.getElementById('robot-text').innerText = text;
+            speakText(text);
+        }
+
+        function playCurrentDetectorAudio() {
+            speakCurrentContext();
+        }
+
+        /* SEZIONE 3: PALESTRA SCUDO */
+        function switchLabSubGame(sub) {
+            playBip();
+            activeLabSubGame = sub;
+            const b1 = document.getElementById('btn-subgame-sorting');
+            const b2 = document.getElementById('btn-subgame-shield');
+            const c1 = document.getElementById('subgame-sorting-container');
+            const c2 = document.getElementById('subgame-shield-container');
+
+            if (sub === 'sorting') {
+                b1.className = "px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-600 text-white border-2 border-indigo-700 shadow flex items-center gap-1.5 transition";
+                b2.className = "px-3 py-1.5 rounded-xl font-black text-xs bg-white text-indigo-900 border-2 border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5 transition";
+                c1.classList.remove('hidden');
+                c1.classList.add('flex');
+                c2.classList.add('hidden');
+                c2.classList.remove('flex');
+                initSortingGame();
+            } else {
+                b2.className = "px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-600 text-white border-2 border-indigo-700 shadow flex items-center gap-1.5 transition";
+                b1.className = "px-3 py-1.5 rounded-xl font-black text-xs bg-white text-indigo-900 border-2 border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5 transition";
+                c2.classList.remove('hidden');
+                c2.classList.add('flex');
+                c1.classList.add('hidden');
+                c1.classList.remove('flex');
+                resetShieldGame();
+            }
+        }
+
+        function initSortingGame() {
+            currentSortingItemIndex = 0;
+            safeCount = 0;
+            dangerCount = 0;
+            document.getElementById('safe-container').innerHTML = '';
+            document.getElementById('danger-container').innerHTML = '';
+            document.getElementById('safe-count-tag').innerText = '(0)';
+            document.getElementById('danger-count-tag').innerText = '(0)';
+            renderSortingItem();
+        }
+
+        function renderSortingItem() {
+            if (currentSortingItemIndex >= SORTING_ITEMS.length) {
+                if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                document.getElementById('victory-title').innerText = "PALESTRA COMPLETATA!";
+                document.getElementById('victory-message').innerText = "Hai smistato correttamente tutti gli elementi sicuri e le trappole!";
+                document.getElementById('victory-modal').classList.remove('hidden');
+                return;
+            }
+
+            const item = SORTING_ITEMS[currentSortingItemIndex];
+            const spawn = document.getElementById('item-spawn');
+            spawn.innerHTML = `
+                <div id="draggable-card" draggable="true" ondragstart="handleDragStart(event)" class="draggable-item bg-white border-4 border-amber-300 px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2">
+                    <span class="text-3xl">${item.emoji}</span>
+                    <span class="font-black text-xs sm:text-sm text-slate-800">${item.name}</span>
+                </div>
+            `;
+
+            document.getElementById('trainer-progress-text').innerText = `Elementi controllati: ${currentSortingItemIndex} / ${SORTING_ITEMS.length}`;
+            speakCurrentContext();
+
+            setupDropBaskets();
+        }
+
+        function setupDropBaskets() {
+            const safeB = document.getElementById('safe-basket');
+            const dangerB = document.getElementById('danger-basket');
+
+            [safeB, dangerB].forEach(b => {
+                b.ondragover = (e) => { e.preventDefault(); b.classList.add('drag-over'); };
+                b.ondragleave = () => { b.classList.remove('drag-over'); };
+                b.ondrop = (e) => {
+                    e.preventDefault();
+                    b.classList.remove('drag-over');
+                    const targetIsSafe = b.id === 'safe-basket';
+                    checkSortingAnswer(targetIsSafe);
+                };
+                b.onclick = () => {
+                    const targetIsSafe = b.id === 'safe-basket';
+                    checkSortingAnswer(targetIsSafe);
+                };
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', 'item');
+        }
+
+        function checkSortingAnswer(userChoiceSafe) {
+            initAudio();
+            const item = SORTING_ITEMS[currentSortingItemIndex];
+            if (userChoiceSafe === item.isSafe) {
+                playSuccessSound();
+                updateRobotFace('happy');
+
+                if (item.isSafe) {
+                    safeCount++;
+                    document.getElementById('safe-count-tag').innerText = `(${safeCount})`;
+                    document.getElementById('safe-container').innerHTML += `<span class="text-xl">${item.emoji}</span>`;
+                } else {
+                    dangerCount++;
+                    document.getElementById('danger-count-tag').innerText = `(${dangerCount})`;
+                    document.getElementById('danger-container').innerHTML += `<span class="text-xl">${item.emoji}</span>`;
+                }
+
+                showFloatingFeedback('✅ SMISTATO CORRETTAMENTE!', true);
+                currentSortingItemIndex++;
+                setTimeout(renderSortingItem, 800);
+            } else {
+                playErrorSound();
+                updateRobotFace('sad');
+                showFloatingFeedback('❌ TRAPPOLA! CONTROLLA MEGLIO!', false);
+                setTimeout(() => updateRobotFace('neutral'), 800);
+            }
+        }
+
+        function speakCurrentItem() {
+            playBip();
+            const item = SORTING_ITEMS[currentSortingItemIndex];
+            speakText(`L'elemento è: ${item.name}`);
+        }
+
+        function resetShieldGame() {
+            currentShieldIndex = 0;
+            renderShieldCard();
+        }
+
+        function renderShieldCard() {
+            if (currentShieldIndex >= SHIELD_MESSAGES.length) {
+                if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                document.getElementById('victory-title').innerText = "LO SCUDO È FORTE!";
+                document.getElementById('victory-message').innerText = "Hai difeso il gruppo dalle cattiverie e promosso le parole gentili!";
+                document.getElementById('victory-modal').classList.remove('hidden');
+                return;
+            }
+
+            const msg = SHIELD_MESSAGES[currentShieldIndex];
+            document.getElementById('shield-item-emoji').innerText = msg.emoji;
+            document.getElementById('shield-item-text').innerText = `"${msg.text}"`;
+            document.getElementById('shield-progress-text').innerText = `Messaggi protetti: ${currentShieldIndex} / ${SHIELD_MESSAGES.length}`;
+
+            speakShieldMessage();
+        }
+
+        function speakShieldMessage() {
+            playBip();
+            const msg = SHIELD_MESSAGES[currentShieldIndex];
+            document.getElementById('robot-text').innerText = `Il messaggio dice: ${msg.text}`;
+            speakText(msg.text);
+        }
+
+        function answerShieldAction(userChoiceGentle) {
+            initAudio();
+            const msg = SHIELD_MESSAGES[currentShieldIndex];
+
+            if (userChoiceGentle === msg.isGentle) {
+                playSuccessSound();
+                updateRobotFace('happy');
+                showFloatingFeedback('✅ BRAVO! AZIONE CORRETTA!', true);
+                currentShieldIndex++;
+                setTimeout(renderShieldCard, 1000);
+            } else {
+                playErrorSound();
+                updateRobotFace('sad');
+                showFloatingFeedback('❌ ATTENZIONE! RIPROVA!', false);
+                setTimeout(() => updateRobotFace('neutral'), 800);
+            }
+        }
+
+        function speakShieldConcept() {
+            playBip();
+            const text = "Le parole gentili aiutano l'amicizia! Se un messaggio fa male o spaventa, fermalo subito con lo scudo!";
+            document.getElementById('robot-text').innerText = text;
+            speakText(text);
+        }
+
+        function resetActiveLabGame() {
+            playBip();
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (activeLabSubGame === 'sorting') initSortingGame();
+            else resetShieldGame();
+        }
+
+        function showFloatingFeedback(msg, isSuccess) {
+            const el = document.createElement('div');
+            el.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 rounded-2xl font-black text-sm sm:text-lg z-50 float-feedback shadow-2xl ${isSuccess ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`;
+            el.innerText = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 900);
+        }
+
+        function updateRobotFace(type) {
+            const avatar = document.getElementById('robot-avatar');
+            if (!avatar) return;
+            avatar.classList.remove('robot-happy', 'robot-sad');
+            if (type === 'happy') avatar.classList.add('robot-happy');
+            else if (type === 'sad') avatar.classList.add('robot-sad');
+        }
+
+        /* LOGICA SEZIONE 4: GLOSSARIO IA PARLANTE (20 VOCI) */
+        function renderGlossaryUI() {
+            renderGlossaryButtons();
+            renderSelectedGlossaryTerm();
+        }
+
+        function filterGlossary(filterType) {
+            playBip();
+            glossaryFilter = filterType;
+
+            document.getElementById('btn-glossary-filter-all').className = filterType === 'all' ? "px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-600 text-white border border-indigo-700 shadow" : "px-3 py-1.5 rounded-xl font-black text-xs bg-white text-slate-700 border border-slate-300 hover:bg-slate-50";
+            document.getElementById('btn-glossary-filter-positive').className = filterType === 'positive' ? "px-3 py-1.5 rounded-xl font-black text-xs bg-emerald-600 text-white border border-emerald-700 shadow" : "px-3 py-1.5 rounded-xl font-black text-xs bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50";
+            document.getElementById('btn-glossary-filter-negative').className = filterType === 'negative' ? "px-3 py-1.5 rounded-xl font-black text-xs bg-rose-600 text-white border border-rose-700 shadow" : "px-3 py-1.5 rounded-xl font-black text-xs bg-white text-rose-800 border border-rose-300 hover:bg-rose-50";
+
+            renderGlossaryButtons();
+        }
+
+        function renderGlossaryButtons() {
+            const grid = document.getElementById('glossary-buttons-grid');
+            grid.innerHTML = '';
+
+            GLOSSARY_TERMS.forEach((term, index) => {
+                if (glossaryFilter !== 'all' && term.category !== glossaryFilter) return;
+
+                const isSelected = index === selectedGlossaryTermIndex;
+                const btn = document.createElement('button');
+
+                const isPos = term.category === 'positive';
+                btn.className = `p-2 rounded-2xl border-2 font-black text-xs flex items-center gap-2 transition text-left shadow-sm ${
+                    isSelected 
+                        ? 'bg-pink-400 text-pink-950 border-pink-500 scale-105 z-10 shadow-md' 
+                        : (isPos ? 'bg-emerald-50 text-emerald-950 border-emerald-200 hover:bg-emerald-100' : 'bg-rose-50 text-rose-950 border-rose-200 hover:bg-rose-100')
+                }`;
+
+                btn.onclick = () => selectGlossaryTerm(index);
+
+                btn.innerHTML = `
+                    <span class="text-xl shrink-0">${term.emoji}</span>
+                    <span class="truncate leading-tight">${term.name}</span>
+                `;
+
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectGlossaryTerm(index) {
+            initAudio();
+            selectedGlossaryTermIndex = index;
+            renderGlossaryButtons();
+            renderSelectedGlossaryTerm();
+            speakSelectedGlossaryTerm();
+        }
+
+        function renderSelectedGlossaryTerm() {
+            const term = GLOSSARY_TERMS[selectedGlossaryTermIndex];
+            document.getElementById('glossary-term-icon').innerText = term.emoji;
+            document.getElementById('glossary-term-title').innerText = term.name;
+            document.getElementById('glossary-term-desc').innerText = term.desc;
+
+            const badge = document.getElementById('glossary-term-badge');
+            badge.innerText = term.badgeText;
+            badge.className = `px-2.5 py-0.5 rounded-full text-[10px] font-black border ${term.badgeClass}`;
+        }
+
+        function speakSelectedGlossaryTerm() {
+            playBip();
+            const term = GLOSSARY_TERMS[selectedGlossaryTermIndex];
+            document.getElementById('robot-text').innerText = term.speech;
+            speakText(term.speech);
+        }
+
+        function speakGlossaryContext() {
+            playBip();
+            const text = "Nel Glossario parlante trovi 10 strumenti amici e 10 trappole da conoscere! Tocca qualsiasi pulsante per ascoltare la lezione di Robo-Maestra!";
+            document.getElementById('robot-text').innerText = text;
+            speakText(text);
+        }
+
+        /* INIZIALIZZAZIONE ALL'AVVIO */
+        window.addEventListener('DOMContentLoaded', () => {
+            renderStorySlide();
+        });
+    </script>
+</body>
+</html>
